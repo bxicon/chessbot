@@ -1,5 +1,6 @@
 package view;
 
+import controller.ChessController;
 import model.Board;
 import model.Piece;
 
@@ -12,31 +13,23 @@ import java.io.IOException;
 
 public class Display extends JFrame {
     private JPanel chessBoardPanel;
-    private Board board;
+    private ChessController controller;
+    private JPanel[][] squares = new JPanel[8][8];
     private BufferedImage pieceSpriteSheet;
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(Display::new);
-    }
-
-    public Display(){
+    public Display(BufferedImage pieceSpriteSheet){
+        this.pieceSpriteSheet = pieceSpriteSheet;
         setTitle("Chess Board");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(600, 600);
         setLayout(new BorderLayout());
 
-        try{
-            pieceSpriteSheet = ImageIO.read(new File("resources/Chess_Pieces_Sprite.svg.png"));
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-
-        board = new Board();
         createGraphicalBoard();
-        addGraphicalPieces();
-
-        add(chessBoardPanel, BorderLayout.CENTER);
         setVisible(true);
+    }
+
+    public void setController(ChessController controller){
+        this.controller = controller;
     }
 
     void createGraphicalBoard(){
@@ -52,26 +45,72 @@ public class Display extends JFrame {
                 else {
                     square.setBackground(Color.decode("#769656"));
                 }
+
+                squares[rank][file] = square;
+
+                int currentRank = rank;
+                int currentFile = file;
+                square.addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mousePressed(java.awt.event.MouseEvent e) {
+                        if (controller != null) {
+                            if (controller.isValidSelect(currentFile, currentRank))
+                                controller.removePreviousHighlights();
+                            controller.handleSquareClick(currentFile, currentRank);
+                        }
+                    }
+                });
+
                 chessBoardPanel.add(square);
             }
         }
+        add(chessBoardPanel, BorderLayout.CENTER);
     }
 
-    void addGraphicalPieces(){
-        for (int rank = 0; rank < 8; rank++){
-            for (int file = 0; file < 8; file++){
-                int index = rank * 8 + file;
-                Piece piece = board.square[index];
+    public void highlightSquare(int file, int rank) {
+        boolean isLightSquare = (file + rank) % 2 == 0;
+        if (isLightSquare){
+            squares[rank][file].setBackground(Color.decode("#f5f682"));
+        }
+        else {
+            squares[rank][file].setBackground(Color.decode("#b9ca43"));
+        }
+    }
+
+    public void removeHighlight(int file, int rank) {
+        boolean isLightSquare = (file + rank) % 2 == 0;
+        if (isLightSquare) {
+            squares[rank][file].setBackground(Color.decode("#eeeed2"));
+        }
+        else {
+            squares[rank][file].setBackground(Color.decode("#769656"));
+        }
+    }
+
+    public void updateBoard(Board board) {
+        chessBoardPanel.removeAll();
+
+        for (int rank = 0; rank < 8; rank++) {
+            for (int file = 0; file < 8; file++) {
+                JPanel square = squares[rank][file];
+
+                Piece piece = board.square[rank * 8 + file];
+
+                square.removeAll();
 
                 if (piece != null && !piece.isNone()){
                     JLabel pieceLabel = new JLabel();
                     pieceLabel.setHorizontalAlignment(SwingConstants.CENTER);
                     pieceLabel.setIcon(getPieceIcon(piece));
-                    JPanel square = (JPanel) chessBoardPanel.getComponent(index);
                     square.add(pieceLabel);
                 }
+
+                chessBoardPanel.add(square);
             }
         }
+
+        chessBoardPanel.revalidate();
+        chessBoardPanel.repaint();
     }
 
     private  ImageIcon getPieceIcon(Piece piece){
