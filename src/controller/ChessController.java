@@ -1,8 +1,13 @@
 package controller;
 
+import javazoom.jl.player.Player;
 import model.Board;
 import model.Piece;
 import view.Display;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+
 
 public class ChessController {
     private Board board;
@@ -46,6 +51,15 @@ public class ChessController {
         Piece piece = board.square[fromRank * 8 + fromFile];
 
         if (piece != null && !piece.isNone()) {
+
+            if (!isValidSelect(toFile, toRank)){
+                playAudio("resources/sound/move-self.mp3");
+            }
+            else {
+                playAudio("resources/sound/capture.mp3");
+            }
+
+
             board.square[toRank * 8 + toFile] = piece;
             board.square[fromRank * 8 + fromFile] = null;
 
@@ -53,6 +67,19 @@ public class ChessController {
             display.highlightSquare(toFile, toRank);
         }
     }
+
+    private void playAudio(String fileName) {
+        new Thread(() -> {
+            try {
+                FileInputStream fileInputStream = new FileInputStream(fileName);
+                Player playMP3 = new Player(fileInputStream);
+                playMP3.play();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
 
     public void removePreviousHighlights() {
         if (prevSelectedFile != -1 && prevSelectedRank != -1) {
@@ -70,4 +97,6 @@ public class ChessController {
 
         return piece != null && !piece.isNone();
     }
+
+
 }
